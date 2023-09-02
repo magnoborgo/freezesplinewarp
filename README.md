@@ -5,7 +5,7 @@ This Nuke script will convert Roto/Trackers to SplineWarp and expression 'freeze
 Basically this allows you to matchmove the freeze frame OR stabilize plates with SplineWarps
 
 This version is an upgrade and replaces both<br>
-https://github.com/magnoborgo/FreezeSplineWarp2/
+https://github.com/magnoborgo/FreezeSplineWarp2/<br>
 https://github.com/magnoborgo/RotoPaintToSplineWarp2
 
 #### COMPATIBILITY #### 
