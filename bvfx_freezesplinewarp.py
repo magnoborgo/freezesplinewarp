@@ -70,7 +70,7 @@ def bvfx_roto_walker(rotoNode,rotoList=[]):
         TYPE: List with [element, parent]
     """
     try:
-        if rotoNode.Class() in ('Roto', 'Rotopaint'):  # its the Node
+        if rotoNode.Class() in ('Roto', 'RotoPaint'):  # its the Node
             rotoRoot = rotoNode['curves'].rootLayer
             rotoList=[] # need to restart the list otherwise it can re-use from previous runs
 
