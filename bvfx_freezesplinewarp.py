@@ -389,7 +389,7 @@ def freezewarp(nodeList):
                 b_input = nuke.selectedNode()
 
             # windows copypaste bug workaround
-            if sys.platform not in ('darwin') and not platform.startswith('linux'):
+            if sys.platform not in ('darwin') and not sys.platform.startswith('linux'):
                 tempWarpNode = nuke.createNode(warpNode.Class())
                 for knobname in warpNode.knobs():
                     tempWarpNode[knobname].fromScript(
