@@ -329,7 +329,7 @@ def freezewarp(nodeList):
 
         splinewarp_expressionLock(warpNode)
 
-        label = "FreezeF: [value fframe]"
+        label = '''FreezeF: [value fframe]\n[if {[value mix]==0 && [value root_warp]==1} {return "matchmove"} {return "stabilization"}]'''
         warpNode.knob('label').setValue(label)
         warpNode.knob('filter').setValue(
             'Mitchell')  # less smoother than cubic
@@ -401,7 +401,6 @@ def freezewarp(nodeList):
 
             b_input["mix"].setValue(1)
             dot = nuke.nodes.Dot()
-            dot["label"].setValue("  Stabilization")
             set_inputs(a_input, b_input)
             set_inputs(b_input, dot)
             nukescripts.swapAB(b_input)
@@ -410,11 +409,7 @@ def freezewarp(nodeList):
             b_input["xpos"].setValue(warpNode["xpos"].getValue()+135)
             b_input["ypos"].setValue(dot["ypos"].getValue()+80)
             a_input["xpos"].setValue(warpNode["xpos"].getValue()+135)
-            a_input["ypos"].setValue(dot["ypos"].getValue()+160)
-            b_input.knob('label').setValue(warpNode.knob(
-                'label').getValue()+"\n stabilization")
-            a_input.knob('label').setValue(
-                warpNode.knob('label').getValue()+"\n matchmove")
+            a_input["ypos"].setValue(dot["ypos"].getValue()+160)            
             # =======================================================================
             # workaround.... if node is not show on properties tab the "root warp" attribute will not change!
             # =======================================================================
