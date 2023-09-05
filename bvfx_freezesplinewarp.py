@@ -21,13 +21,6 @@ __date__ = "Set 01 2023"
 __web__ = "www.boundaryvfx.com"
 
 
-import os
-import nuke
-import logging
-log = logging.getLogger(__name__)
-log.info("Loading %s " % os.path.abspath(__file__))
-
-
 def addTabtoNode(node,tab):
     """ Adds a custom tab to the node, skipping if a tab with the name already exists
     
