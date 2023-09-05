@@ -376,28 +376,10 @@ def freezewarp(nodeList):
         warpNode.knob('selected').setValue(True)
 
         if stb:
-            # windows copypaste bug workaround
-            if sys.platform not in ('darwin') and not sys.platform.startswith('linux'):
-                tempWarpNode = nuke.createNode(warpNode.Class())
-                for knobname in warpNode.knobs():
-                    tempWarpNode[knobname].fromScript(
-                        warpNode[knobname].toScript())
-                b_input = tempWarpNode
-
-            else:
-                nukescripts.node_copypaste()
-                b_input = nuke.selectedNode()
-
-            # windows copypaste bug workaround
-            if sys.platform not in ('darwin') and not sys.platform.startswith('linux'):
-                tempWarpNode = nuke.createNode(warpNode.Class())
-                for knobname in warpNode.knobs():
-                    tempWarpNode[knobname].fromScript(
-                        warpNode[knobname].toScript())
-                a_input = tempWarpNode
-            else:
-                nukescripts.node_copypaste()
-                a_input = nuke.selectedNode()
+            nukescripts.node_copypaste()
+            b_input = nuke.selectedNode()
+            nukescripts.node_copypaste()
+            a_input = nuke.selectedNode()
 
             b_input["mix"].setValue(1)
             dot = nuke.nodes.Dot()
