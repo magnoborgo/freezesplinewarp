@@ -14,16 +14,16 @@ log.info("Loading %s " % os.path.abspath(__file__))
 BVFX_DEFAULT_SHORTCUT = "F8"
 BVFX_DEFAULT_MENULABEL = "Freeze Splinewarp"
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 __author__ = "Magno Borgo"
 __creation__ = "Mar 31 2012"
 __date__ = "Set 01 2023"
 __web__ = "www.boundaryvfx.com"
 
 
-def addTabtoNode(node,tab):
+def addTabtoNode(node, tab):
     """ Adds a custom tab to the node, skipping if a tab with the name already exists
-    
+
     Args:
         node (Node): The node to create the tab into        
         tab (str): New tab name
@@ -36,11 +36,12 @@ def addTabtoNode(node,tab):
     else:
         log.debug("Tab already exists")
         new_tab = node[tab]
-        
+
     return new_tab
 
-def bvfx_signature(node,text):
-    k = nuke.Text_Knob("") # divider
+
+def bvfx_signature(node, text):
+    k = nuke.Text_Knob("")  # divider
     k.setFlag(nuke.STARTLINE)
     node.addKnob(k)
     k = nuke.Text_Knob("")
@@ -51,7 +52,7 @@ def bvfx_signature(node,text):
     node.addKnob(k)
 
 
-def bvfx_roto_walker(rotoNode,rotoList=[]):
+def bvfx_roto_walker(rotoNode, rotoList=[]):
     """ This will traverse the rotonode hierarchy tree and generate a list with the [element, parent]
         Attention: it ignores Strokes
 
@@ -65,10 +66,10 @@ def bvfx_roto_walker(rotoNode,rotoList=[]):
     try:
         if rotoNode.Class() in ('Roto', 'RotoPaint'):  # its the Node
             rotoRoot = rotoNode['curves'].rootLayer
-            rotoList=[] # need to restart the list otherwise it can re-use from previous runs
+            rotoList = []  # need to restart the list otherwise it can re-use from previous runs
 
     except:  # its a Layer
-        rotoRoot = rotoNode #usually a layer
+        rotoRoot = rotoNode  # usually a layer
 
     for _ in rotoRoot:
         if isinstance(_, nuke.rotopaint.Shape):
@@ -78,29 +79,30 @@ def bvfx_roto_walker(rotoNode,rotoList=[]):
             bvfx_roto_walker(_, rotoList)
     return rotoList
 
+
 def bvfx_TTM(point, transf, frame):
     """TTM is short for "Transform To Matrix" 
         It will apply the matrix transform on the point resulting in the new point coordinates
-    
+
     Args:
         point (TYPE): a tuple with the original x,y coordinate
         transf (TYPE): a transform that has a matrix() method like _curvelib.AnimCTransform 
         frame (TYPE): the frame to evaluate
-    
+
     Returns:
         TYPE: Description
-    
+
     """
-    matrix = transf.evaluate(frame).getMatrix() 
+    matrix = transf.evaluate(frame).getMatrix()
     vector = nuke.math.Vector4(point[0], point[1], 1, 1)
     x = (vector[0] * matrix[0]) + (vector[1] *
-                                        matrix[1]) + matrix[2] + matrix[3]
+                                   matrix[1]) + matrix[2] + matrix[3]
     y = (vector[0] * matrix[4]) + (vector[1] *
-                                        matrix[5]) + matrix[6] + matrix[7]
+                                   matrix[5]) + matrix[6] + matrix[7]
     z = (vector[0] * matrix[8]) + (vector[1] *
-                                        matrix[9]) + matrix[10] + matrix[11]
+                                   matrix[9]) + matrix[10] + matrix[11]
     w = (vector[0] * matrix[12]) + (vector[1] *
-                                         matrix[13]) + matrix[14] + matrix[15]
+                                    matrix[13]) + matrix[14] + matrix[15]
     vector = nuke.math.Vector4(x, y, z, w)
     vector = vector / w
     return vector
@@ -108,28 +110,26 @@ def bvfx_TTM(point, transf, frame):
 
 def bvfx_TL(point, Layer, frame, shapeList):
     """ Recursively apply Layers matrix/transformations on a point until reaching the roto.root
-    
+
     Args:
         point (TYPE): a tuple with the original x,y coordinate
         Layer (TYPE): the layer to applyt the transform from
         frame (TYPE): frame to evaluate
         shapeList (TYPE): a bvfx_roto_walker() list
-    
+
     Returns:
         TYPE: Description
     """
     newpoint = bvfx_TTM(point, Layer.getTransform(), frame)
 
-    if not Layer == shapeList[0][1]: # its a Layer (shapeList[0][1] has always roto.root on it)
+    # its a Layer (shapeList[0][1] has always roto.root on it)
+    if not Layer == shapeList[0][1]:
         newpoint = bvfx_TTM(point, Layer.getTransform(), frame)
         for _ in shapeList:
             if _[0] == Layer:
                 newpoint = bvfx_TL(
                     newpoint, _[1], frame, shapeList)
     return newpoint
-
-
-
 
 
 def set_inputs(node, *inputs):
@@ -278,6 +278,10 @@ def freezewarp(nodeList):
     k.setFlag(nuke.STARTLINE)
     k.setTooltip("This will create a handy warp stabilization setup")
     p.addKnob(k)
+
+    if sys.platform.startswith('win'):
+        k.setVisible(False)
+        k.setEnabled(False) #windows have a clipboard bug that wont allow copy the node
     k.setValue(False)
     # ===========================================================================
 
@@ -369,30 +373,34 @@ def freezewarp(nodeList):
         warpNode.knob('selected').setValue(True)
 
         if stb:
-            nukescripts.node_copypaste()
-            b_input = nuke.selectedNode()
-            nukescripts.node_copypaste()
-            a_input = nuke.selectedNode()
+            try:
+                nukescripts.node_copypaste()
+                b_input = nuke.selectedNode()
+                nukescripts.node_copypaste()
+                a_input = nuke.selectedNode()
 
-            b_input["mix"].setValue(1)
-            dot = nuke.nodes.Dot()
-            set_inputs(a_input, b_input)
-            set_inputs(b_input, dot)
-            nukescripts.swapAB(b_input)
-            dot["xpos"].setValue(warpNode["xpos"].getValue()+169)
-            dot["ypos"].setValue(warpNode["ypos"].getValue()+11)
-            b_input["xpos"].setValue(warpNode["xpos"].getValue()+135)
-            b_input["ypos"].setValue(dot["ypos"].getValue()+80)
-            a_input["xpos"].setValue(warpNode["xpos"].getValue()+135)
-            a_input["ypos"].setValue(dot["ypos"].getValue()+160)            
-            # =======================================================================
-            # workaround.... if node is not show on properties tab the "root warp" attribute will not change!
-            # =======================================================================
-            b_input.knob('selected').setValue(True)
-            nuke.show(nuke.selectedNode())
-            nuke.selectedNode()["root_warp"].setValue(0)
+                b_input["mix"].setValue(1)
+                dot = nuke.nodes.Dot()
+                set_inputs(a_input, b_input)
+                set_inputs(b_input, dot)
+                nukescripts.swapAB(b_input)
+                dot["xpos"].setValue(warpNode["xpos"].getValue()+169)
+                dot["ypos"].setValue(warpNode["ypos"].getValue()+11)
+                b_input["xpos"].setValue(warpNode["xpos"].getValue()+135)
+                b_input["ypos"].setValue(dot["ypos"].getValue()+80)
+                a_input["xpos"].setValue(warpNode["xpos"].getValue()+135)
+                a_input["ypos"].setValue(dot["ypos"].getValue()+160)
+                # =======================================================================
+                # workaround.... if node is not show on properties tab the "root warp" attribute will not change!
+                # =======================================================================
+                b_input.knob('selected').setValue(True)
+                nuke.show(nuke.selectedNode())
+                nuke.selectedNode()["root_warp"].setValue(0)
 
-            nodeSelection += [dot, b_input, a_input]
+                nodeSelection += [dot, b_input, a_input]
+            except Exception:
+                raise Exception(
+                    "Stabilization Setup Failed, very likely a Windows/Clipboard bug\nRun the script without Stabilize")
 
     for _ in nodeSelection:
         _.knob('selected').setValue(True)
