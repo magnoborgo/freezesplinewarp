@@ -14,10 +14,10 @@ log.info("Loading %s " % os.path.abspath(__file__))
 BVFX_DEFAULT_SHORTCUT = "F8"
 BVFX_DEFAULT_MENULABEL = "Freeze Splinewarp"
 
-__version__ = "3.0.1"
+__version__ = "3.0.2"
 __author__ = "Magno Borgo"
 __creation__ = "Mar 31 2012"
-__date__ = "Set 01 2023"
+__date__ = "Set 26 2023"
 __web__ = "www.boundaryvfx.com"
 
 
@@ -453,8 +453,11 @@ def convert_trackernodes(trackNode, warpNode, fRange, fullbake=False):
                                 f-1), newPoint.center.getPositionAnimCurve(1).evaluate(f-1))
                             point = (newPoint.center.getPositionAnimCurve(0).evaluate(
                                 f), newPoint.center.getPositionAnimCurve(1).evaluate(f))
-                            if point == lastf_point:
-                                newPoint.center.removePositionKey(f)
+                            nextf_point = (newpoint.center.getPositionAnimCurve(0).evaluate(
+                                f+1), newpoint.center.getPositionAnimCurve(1).evaluate(f+1))
+                            if point == lastf_point == nextf_point:
+                                newpoint.center.removePositionKey(f)
+
 
                 shapeattr = newPointShape.getAttributes()
                 shapeattr.add("ab", 1.0)
@@ -522,8 +525,10 @@ def convert_trackernodes(trackNode, warpNode, fRange, fullbake=False):
                             f-1), newPoint.center.getPositionAnimCurve(1).evaluate(f-1))
                         point = (newPoint.center.getPositionAnimCurve(0).evaluate(
                             f), newPoint.center.getPositionAnimCurve(1).evaluate(f))
-                        if point == lastf_point:
-                            newPoint.center.removePositionKey(f)
+                        nextf_point = (newpoint.center.getPositionAnimCurve(0).evaluate(
+                                f+1), newpoint.center.getPositionAnimCurve(1).evaluate(f+1))
+                        if point == lastf_point == nextf_point:
+                                newpoint.center.removePositionKey(f)
 
             shapeattr = newPointShape.getAttributes()
             shapeattr.add("ab", 1.0)
@@ -641,9 +646,11 @@ def convert_rotonodes(rotoNode, warpNode, fRange, breakintopin=False, fullbake=F
                                 f-1), newpoint.center.getPositionAnimCurve(1).evaluate(f-1))
                             point = (newpoint.center.getPositionAnimCurve(0).evaluate(
                                 f), newpoint.center.getPositionAnimCurve(1).evaluate(f))
-
-                            if point == lastf_point:
+                            nextf_point = (newpoint.center.getPositionAnimCurve(0).evaluate(
+                                f+1), newpoint.center.getPositionAnimCurve(1).evaluate(f+1))
+                            if point == lastf_point == nextf_point:
                                 newpoint.center.removePositionKey(f)
+
 
                 # ===============================================================
                 # cleanup keyframes outside range
