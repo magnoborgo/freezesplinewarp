@@ -314,8 +314,7 @@ def freezewarp(nodeList):
                 'pybutton', 'This Frame', 'nuke.thisNode()["fframe"].setValue(nuke.frame())')
             warpNode.addKnob(pbutton)
 
-            pb2code = '''origmix = nuke.thisNode()["mix"].getValue()\nnuke.thisNode()["mix"].setValue(nuke.thisNode()["root_warp"].getValue())\nnuke.thisNode()["root_warp"].setValue(origmix)
-            '''
+            pb2code = '''origmix = nuke.thisNode()["mix"].getValue()\nnuke.thisNode()["mix"].setValue(nuke.thisNode()["root_warp"].getValue())\nnuke.thisNode()["root_warp"].setValue(origmix)\na_input = nuke.thisNode().input(0)\nb_input = nuke.thisNode().input(1)\nnuke.thisNode().setInput(1,a_input)\nnuke.thisNode().setInput(0,b_input)'''
             pbutton2 = nuke.PyScript_Knob(
                 'pybutton2', 'Swap mix/rootwarp', pb2code)
             warpNode.addKnob(pbutton2)
