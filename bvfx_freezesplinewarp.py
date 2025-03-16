@@ -14,10 +14,10 @@ log.info("Loading %s " % os.path.abspath(__file__))
 BVFX_DEFAULT_SHORTCUT = "F8"
 BVFX_DEFAULT_MENULABEL = "Freeze Splinewarp"
 
-__version__ = "3.0.2"
+__version__ = "3.0.3"
 __author__ = "Magno Borgo"
 __creation__ = "Mar 31 2012"
-__date__ = "Set 26 2023"
+__date__ = "Mar 16 2025"
 __web__ = "www.boundaryvfx.com"
 
 
@@ -120,16 +120,16 @@ def bvfx_TL(point, Layer, frame, shapeList):
     Returns:
         TYPE: Description
     """
-    newpoint = bvfx_TTM(point, Layer.getTransform(), frame)
+    newPoint = bvfx_TTM(point, Layer.getTransform(), frame)
 
     # its a Layer (shapeList[0][1] has always roto.root on it)
     if not Layer == shapeList[0][1]:
-        newpoint = bvfx_TTM(point, Layer.getTransform(), frame)
+        newPoint = bvfx_TTM(point, Layer.getTransform(), frame)
         for _ in shapeList:
             if _[0] == Layer:
-                newpoint = bvfx_TL(
-                    newpoint, _[1], frame, shapeList)
-    return newpoint
+                newPoint = bvfx_TL(
+                    newPoint, _[1], frame, shapeList)
+    return newPoint
 
 
 def set_inputs(node, *inputs):
@@ -278,6 +278,10 @@ def freezewarp(nodeList):
     k.setFlag(nuke.STARTLINE)
     k.setTooltip("This will create a handy warp stabilization setup")
     p.addKnob(k)
+    k = nuke.Boolean_Knob("ptns", "Paint Setup")
+    k.setFlag(nuke.STARTLINE)
+    k.setTooltip("This will create a handy paint setup")
+    p.addKnob(k)
 
     if sys.platform.startswith('win'):
         k.setVisible(False)
@@ -296,6 +300,7 @@ def freezewarp(nodeList):
 
     fh = p.knobs()["fh"].value()
     stb = p.knobs()["stb"].value()
+    ptns = p.knobs()["ptns"].value()
 
     # holds all nodes for selection at end of script
     nodeSelection = nodeList[:]
@@ -314,8 +319,7 @@ def freezewarp(nodeList):
                 'pybutton', 'This Frame', 'nuke.thisNode()["fframe"].setValue(nuke.frame())')
             warpNode.addKnob(pbutton)
 
-            pb2code = '''origmix = nuke.thisNode()["mix"].getValue()\nnuke.thisNode()["mix"].setValue(nuke.thisNode()["root_warp"].getValue())\nnuke.thisNode()["root_warp"].setValue(origmix)
-            '''
+            pb2code = '''origmix = nuke.thisNode()["mix"].getValue()\nnuke.thisNode()["mix"].setValue(nuke.thisNode()["root_warp"].getValue())\nnuke.thisNode()["root_warp"].setValue(origmix)\na_input = nuke.thisNode().input(0)\nb_input = nuke.thisNode().input(1)\nnuke.thisNode().setInput(1,a_input)\nnuke.thisNode().setInput(0,b_input)'''
             pbutton2 = nuke.PyScript_Knob(
                 'pybutton2', 'Swap mix/rootwarp', pb2code)
             warpNode.addKnob(pbutton2)
@@ -335,7 +339,7 @@ def freezewarp(nodeList):
         # framehold creation
         # ===========================================================================
 
-        if fh:
+        if fh or stb or ptns:
             framehold = nuke.nodes.FrameHold()
 
             framehold["first_frame"].setExpression(warpNode.name() + ".fframe")
@@ -345,6 +349,7 @@ def freezewarp(nodeList):
             framehold["xpos"].setValue(warpNode["xpos"].getValue() - 100)
             framehold["ypos"].setValue(warpNode["ypos"].getValue() - 80)
             dot = nuke.nodes.Dot()
+
             dot["xpos"].setValue(warpNode["xpos"].getValue()+34)
             dot["ypos"].setValue(framehold["ypos"].getValue()+7)
             dot2 = nuke.nodes.Dot()
@@ -361,6 +366,7 @@ def freezewarp(nodeList):
             set_inputs(sc, warpNode, dot2)
             set_inputs(premult, sc)
 
+            dot_main = framehold
             # set_inputs(dot, framehold)
             nodeSelection += [dot, dot2, sc, framehold, premult]
             # nodeSelection.append(dot)
@@ -396,11 +402,45 @@ def freezewarp(nodeList):
                 b_input.knob('selected').setValue(True)
                 nuke.show(nuke.selectedNode())
                 nuke.selectedNode()["root_warp"].setValue(0)
-
+                a_input["fframe"].setExpression(b_input.name() + ".fframe")
+                
                 nodeSelection += [dot, b_input, a_input]
             except Exception:
                 raise Exception(
                     "Stabilization Setup Failed, very likely a Windows/Clipboard bug\nRun the script without Stabilize")
+
+        if ptns:
+            try:
+                nukescripts.node_copypaste()
+                b_input = nuke.selectedNode()
+                b_input["mix"].setValue(1)
+                dot = nuke.nodes.Dot()
+                rpstb = nuke.createNode('RotoPaint')
+                set_inputs(b_input,dot)
+                set_inputs(rpstb, dot)
+                set_inputs(dot_main, rpstb)
+                rpstb.setInput(2, b_input)
+                nukescripts.swapAB(b_input)
+                dot["xpos"].setValue(dot_main["xpos"].getValue()+35)
+                dot["ypos"].setValue(dot_main["ypos"].getValue()+11-150)
+                rpstb["xpos"].setValue(dot_main["xpos"].getValue())
+                rpstb["ypos"].setValue(dot_main["ypos"].getValue()+80-150)
+                b_input["xpos"].setValue(dot_main["xpos"].getValue()+125)
+                b_input["ypos"].setValue(dot_main["ypos"].getValue()+55-150)
+                # =======================================================================
+                # workaround.... if node is not show on properties tab the "root warp" attribute will not change!
+                # =======================================================================
+                b_input.knob('selected').setValue(True)
+                nuke.show(nuke.selectedNode())
+                nuke.selectedNode()["root_warp"].setValue(0)
+                b_input["fframe"].setExpression(warpNode.name() + ".fframe")
+                nodeSelection += [dot, b_input, rpstb]
+
+            except Exception:
+                raise Exception(
+                    "Stabilization Setup Failed, very likely a Windows/Clipboard bug\nRun the script without Stabilize")
+
+
 
     for _ in nodeSelection:
         _.knob('selected').setValue(True)
@@ -453,10 +493,10 @@ def convert_trackernodes(trackNode, warpNode, fRange, fullbake=False):
                                 f-1), newPoint.center.getPositionAnimCurve(1).evaluate(f-1))
                             point = (newPoint.center.getPositionAnimCurve(0).evaluate(
                                 f), newPoint.center.getPositionAnimCurve(1).evaluate(f))
-                            nextf_point = (newpoint.center.getPositionAnimCurve(0).evaluate(
-                                f+1), newpoint.center.getPositionAnimCurve(1).evaluate(f+1))
+                            nextf_point = (newPoint.center.getPositionAnimCurve(0).evaluate(
+                                f+1), newPoint.center.getPositionAnimCurve(1).evaluate(f+1))
                             if point == lastf_point == nextf_point:
-                                newpoint.center.removePositionKey(f)
+                                newPoint.center.removePositionKey(f)
 
 
                 shapeattr = newPointShape.getAttributes()
@@ -525,10 +565,10 @@ def convert_trackernodes(trackNode, warpNode, fRange, fullbake=False):
                             f-1), newPoint.center.getPositionAnimCurve(1).evaluate(f-1))
                         point = (newPoint.center.getPositionAnimCurve(0).evaluate(
                             f), newPoint.center.getPositionAnimCurve(1).evaluate(f))
-                        nextf_point = (newpoint.center.getPositionAnimCurve(0).evaluate(
-                                f+1), newpoint.center.getPositionAnimCurve(1).evaluate(f+1))
+                        nextf_point = (newPoint.center.getPositionAnimCurve(0).evaluate(
+                                f+1), newPoint.center.getPositionAnimCurve(1).evaluate(f+1))
                         if point == lastf_point == nextf_point:
-                                newpoint.center.removePositionKey(f)
+                                newPoint.center.removePositionKey(f)
 
             shapeattr = newPointShape.getAttributes()
             shapeattr.add("ab", 1.0)
@@ -591,7 +631,7 @@ def convert_rotonodes(rotoNode, warpNode, fRange, breakintopin=False, fullbake=F
                     break
                 newPointShape = rp.Shape(
                     tempRotoNode['curves'], type="bspline")
-                newpoint = rp.ShapeControlPoint(
+                newPoint = rp.ShapeControlPoint(
                     0, 0) if breakintopin else points
 
                 # ===============================================================
@@ -614,7 +654,7 @@ def convert_rotonodes(rotoNode, warpNode, fRange, breakintopin=False, fullbake=F
                     transf.addTransformKey(f)
                     point = (points.center.getPositionAnimCurve(0).evaluate(
                         f), points.center.getPositionAnimCurve(1).evaluate(f))
-                    newpoint.center.addPositionKey(f, (point[0], point[1]))
+                    newPoint.center.addPositionKey(f, (point[0], point[1]))
                 # ===============================================================
                 # end of baking process
                 # ===============================================================
@@ -627,12 +667,12 @@ def convert_rotonodes(rotoNode, warpNode, fRange, breakintopin=False, fullbake=F
                     transf.addTransformKey(f)
                     point = (points.center.getPositionAnimCurve(0).evaluate(
                         f), points.center.getPositionAnimCurve(1).evaluate(f))
-                    newpoint.center.addPositionKey(f, (point[0], point[1]))
+                    newPoint.center.addPositionKey(f, (point[0], point[1]))
                     transf = shape[0].getTransform()
                     center_xy = bvfx_TTM(point, transf, f)
                     center_xy = bvfx_TL(
                         center_xy, shape[1], f, rptsw_shapeList)
-                    newpoint.center.addPositionKey(
+                    newPoint.center.addPositionKey(
                         f, (center_xy[0], center_xy[1]))
 
                 # ===============================================================
@@ -642,27 +682,27 @@ def convert_rotonodes(rotoNode, warpNode, fRange, breakintopin=False, fullbake=F
                     for f in fRange:
                         # do not add repeated keyframes
                         if f not in (fRange.first(), fRange.last()):
-                            lastf_point = (newpoint.center.getPositionAnimCurve(0).evaluate(
-                                f-1), newpoint.center.getPositionAnimCurve(1).evaluate(f-1))
-                            point = (newpoint.center.getPositionAnimCurve(0).evaluate(
-                                f), newpoint.center.getPositionAnimCurve(1).evaluate(f))
-                            nextf_point = (newpoint.center.getPositionAnimCurve(0).evaluate(
-                                f+1), newpoint.center.getPositionAnimCurve(1).evaluate(f+1))
+                            lastf_point = (newPoint.center.getPositionAnimCurve(0).evaluate(
+                                f-1), newPoint.center.getPositionAnimCurve(1).evaluate(f-1))
+                            point = (newPoint.center.getPositionAnimCurve(0).evaluate(
+                                f), newPoint.center.getPositionAnimCurve(1).evaluate(f))
+                            nextf_point = (newPoint.center.getPositionAnimCurve(0).evaluate(
+                                f+1), newPoint.center.getPositionAnimCurve(1).evaluate(f+1))
                             if point == lastf_point == nextf_point:
-                                newpoint.center.removePositionKey(f)
+                                newPoint.center.removePositionKey(f)
 
 
                 # ===============================================================
                 # cleanup keyframes outside range
                 # ===============================================================
-                for f in newpoint.center.getControlPointKeyTimes():
+                for f in newPoint.center.getControlPointKeyTimes():
                     if not fRange.isInRange(int(f)):
-                        newpoint.center.removePositionKey(f)
+                        newPoint.center.removePositionKey(f)
 
                 if breakintopin:
                     newPointShape.name = "%s_PIN[%s]" % (
                         shape[0].name, str(pt))
-                    newPointShape.append(newpoint)
+                    newPointShape.append(newPoint)
                     shapeattr = newPointShape.getAttributes()
                     shapeattr.add("ab", 1.0)
                     warpRoot.insert(0, newPointShape)
