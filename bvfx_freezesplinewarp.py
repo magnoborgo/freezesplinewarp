@@ -14,7 +14,7 @@ log.info("Loading %s " % os.path.abspath(__file__))
 BVFX_DEFAULT_SHORTCUT = "F8"
 BVFX_DEFAULT_MENULABEL = "Freeze Splinewarp"
 
-__version__ = "3.0.3"
+__version__ = "3.0.4"
 __author__ = "Magno Borgo"
 __creation__ = "Mar 31 2012"
 __date__ = "Mar 16 2025"
@@ -382,8 +382,14 @@ def freezewarp(nodeList):
             try:
                 nukescripts.node_copypaste()
                 b_input = nuke.selectedNode()
+                if nuke.env['indie'] or nuke.env['nc']:
+                    nuke.show(b_input) #workaround copypaste nc bug
                 nukescripts.node_copypaste()
                 a_input = nuke.selectedNode()
+
+                if nuke.env['indie'] or nuke.env['nc']:
+                    nuke.show(b_input) #workaround copypaste nc bug
+                nuke.show(a_input)
 
                 b_input["mix"].setValue(1)
                 dot = nuke.nodes.Dot()
